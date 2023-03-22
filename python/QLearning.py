@@ -10,15 +10,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class QNetwork(nn.Module):
     def __init__(self, state_size, action_size):
         super(QNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_size)
+        self.fc1 = nn.Linear(state_size, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        self.fc3 = nn.Linear(1024, 256)
+        self.fc4 = nn.Linear(256, action_size)
         self.softmax = nn.Softmax()
 
     def forward(self, state):
         x = torch.relu(self.fc1(state))
         x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+        x = torch.relu(self.fc3(x))
+        return self.fc4(x)
 
 
 class QLearningAgent:
@@ -99,6 +101,8 @@ def get_reward(state, next_state):
     if (next_state == constants.GOAL_LOC):
         return start_dist_to_goal
     elif (cur_dist_to_goal < prev_dist_to_goal and cur_dist_to_goal < start_dist_to_goal):
-        return 1 - cur_dist_to_goal / start_dist_to_goal
+        #return 1 - cur_dist_to_goal / start_dist_to_goal
+        #return 1
+        return start_dist_to_goal - cur_dist_to_goal
     else:
-        return 0
+        return -1
