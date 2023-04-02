@@ -28,7 +28,7 @@ def next_action(data, replay_memory, q_agent):
         bot.take_action(action)
         next_state = bot.get_relative_state()
         reward = get_reward(state, next_state)
-        print(reward)
+        #print(reward)
 
         memory_step = MemoryStep(state,action,reward,next_state)
         replay_memory.append(memory_step)

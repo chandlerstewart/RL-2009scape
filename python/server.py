@@ -8,6 +8,9 @@ from QLearning import *
 import torch
 import threading
 import signal
+import traceback
+
+
 
 class Message:
     def __init__(self, command, info = ""):
@@ -18,7 +21,10 @@ class Message:
         json_out = json.dumps(MESSAGE_OUT.__dict__)
         return json_out.encode()
 
-
+MESSAGE_IN_UPDATED = False
+MESSAGE_IN = Message("temp")
+MESSAGE_OUT = Message("waiting_for_connection")
+SOCKET_OPEN = True
 
 def get_message():
     global STEPS_THIS_EPISODE, MESSAGE_OUT
@@ -46,9 +52,8 @@ def train(batch_size=128, epochs=5):
     shuffle_indices = torch.randperm(states.shape[0])
 
     
-    print(states.shape)
     states = states[shuffle_indices]
-    actions = torch.Tensor(REPLAY_MEMORY.actions)[shuffle_indices]
+    actions = torch.stack(REPLAY_MEMORY.actions)[shuffle_indices]
     rewards = torch.Tensor(REPLAY_MEMORY.rewards)[shuffle_indices]
     next_states = torch.stack(REPLAY_MEMORY.next_states)[shuffle_indices]
     print(f"Average reward {torch.mean(rewards)}")
@@ -64,11 +69,11 @@ def train(batch_size=128, epochs=5):
                 rewards[j:j+batch_size],
                 next_states[j:j+batch_size]
                 )
+            
+    Q_AGENT.update_epsilon(EPISODE_NUM_STEPS)
 
 
     
-
-
 
 def start_server():
     global MESSAGE_IN, MESSAGE_IN_UPDATED, MESSAGE_OUT, SOCKET_OPEN
@@ -106,20 +111,20 @@ def handler(signum, frame):
     exit(1)
  
 
-MESSAGE_IN_UPDATED = False
-MESSAGE_IN = Message("temp")
-MESSAGE_OUT = Message("waiting_for_connection")
-SOCKET_OPEN = True
+
+
+
+batch_size = 128
+epochs = 5
+lr = 0.0001
 
 STATE_MANAGER = State_Manager()
-Q_AGENT = QLearningAgent(constants.STATE_SIZE, constants.ACTION_SIZE)
+Q_AGENT = QLearningAgent(constants.STATE_SIZE, constants.ACTION_SIZE, lr=lr)
 REPLAY_MEMORY = ReplayMemory()
 EPISODE_NUM_STEPS = constants.EPISODE_NUM_STEPS_MIN
 STEPS_THIS_EPISODE = 0
 
 
-batch_size = 128
-epochs = 1
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
     server_thread = threading.Thread(target = start_server)
@@ -127,23 +132,28 @@ if __name__ == "__main__":
 
     EPISODE = 0
     while EPISODE < constants.NUM_EPISDOES:
-        if MESSAGE_IN_UPDATED:
-            STATE_MANAGER.manage_state(MESSAGE_IN)
-            MESSAGE_OUT = get_message()
+        try:
+            if MESSAGE_IN_UPDATED:
+                STATE_MANAGER.manage_state(MESSAGE_IN)
+                MESSAGE_OUT = get_message()
 
-        #if STEPS_THIS_EPISODE % 100 == 95: # train after n steps
-            #train(batch_size=batch_size)
-            #REPLAY_MEMORY.clear()
+            #if STEPS_THIS_EPISODE % 10 == 9: # train after n steps
+            #    train(batch_size=batch_size, epochs=epochs)
+            #    #REPLAY_MEMORY.clear()
 
-        if STEPS_THIS_EPISODE >= EPISODE_NUM_STEPS: #if End of Episode
-            STEPS_THIS_EPISODE = 0
-            EPISODE += 1
-            EPISODE_NUM_STEPS  = min(constants.EPISODE_NUM_STEPS_MAX, EPISODE_NUM_STEPS + 10)
-            print("======= END OF EPISODE =======")
-            train(batch_size=batch_size, epochs=epochs)
-            REPLAY_MEMORY.clear()
-            STATE_MANAGER.STATE = State.RESET_EPISDOE
-            print("======= END OF EPISODE =======")
+            if STEPS_THIS_EPISODE >= EPISODE_NUM_STEPS: #if End of Episode
+                STEPS_THIS_EPISODE = 0
+                EPISODE += 1
+                EPISODE_NUM_STEPS  = min(constants.EPISODE_NUM_STEPS_MAX, EPISODE_NUM_STEPS + 10)
+                print("======= END OF EPISODE =======")
+                train(batch_size=batch_size, epochs=epochs)
+                REPLAY_MEMORY.clear()
+                STATE_MANAGER.STATE = State.RESET_EPISDOE
+                print("======= END OF EPISODE =======")
+        except Exception as e:
+            traceback.print_exc()
+            SOCKET_OPEN = False
+            exit(1)
             
         
     SOCKET_OPEN = False
