@@ -2,7 +2,7 @@ import json
 import time
 import random
 import constants
-from QLearning import MemoryStep, ReplayMemory, get_reward
+from QLearning import MemoryStep
 
 
 
@@ -19,15 +19,15 @@ def json_to_bot(json_data):
 
 
 
-def next_action(data, replay_memory, q_agent):
+def get_action_data(data, replay_memory, agent):
     bots = json_to_bot(data)
     
     for bot in bots:
         state = bot.get_relative_state()
-        action = q_agent.get_action(state)
+        action = agent.get_action(state)
         bot.take_action(action)
         next_state = bot.get_relative_state()
-        reward = get_reward(state, next_state)
+        reward = agent.get_reward(state, next_state)
         #print(reward)
 
         memory_step = MemoryStep(state,action,reward,next_state)
@@ -36,8 +36,7 @@ def next_action(data, replay_memory, q_agent):
 
 
     json_data = json.dumps([b.__dict__ for b in bots])
-    #print(json_data)
-    time.sleep(0.5) #Do not remove this statement
+    #time.sleep(0.5) #Do not remove this statement
 
     
     return json_data

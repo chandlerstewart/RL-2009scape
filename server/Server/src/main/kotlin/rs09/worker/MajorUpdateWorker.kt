@@ -27,10 +27,11 @@ class MajorUpdateWorker {
     var started = false
     val sequence = UpdateSequence()
     val sdf = SimpleDateFormat("HHmmss")
+    val tick_speed = 0L   // default is 600
     val worker = Thread {
         Thread.currentThread().name = "Major Update Worker"
         started = true
-        Thread.sleep(600L)
+        Thread.sleep(tick_speed)
         while (running) {
             val start = System.currentTimeMillis()
             Server.heartbeat()
@@ -74,7 +75,7 @@ class MajorUpdateWorker {
             val end = System.currentTimeMillis()
 /*            ServerMonitor.eventQueue.add(GuiEvent.UpdateTickTime(end - start))
             ServerMonitor.eventQueue.add(GuiEvent.UpdatePulseCount(GameWorld.Pulser.TASKS.size))*/
-            Thread.sleep(max(600 - (end - start), 0))
+            Thread.sleep(max(tick_speed - (end - start), 0))
         }
 
         SystemLogger.logInfo(this::class.java, "Update worker stopped.")

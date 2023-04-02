@@ -4,6 +4,7 @@ import torch.optim as optim
 import random
 import constants
 import utils
+import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -61,6 +62,32 @@ class QLearningAgent:
         loss.backward()
         self.optimizer.step()
 
+
+    def train(self, replay_memory, num_steps, batch_size=128, epochs=5):
+        states = torch.stack(replay_memory.states)
+        shuffle_indices = torch.randperm(states.shape[0])
+
+        
+        states = states[shuffle_indices]
+        actions = torch.stack(replay_memory.actions)[shuffle_indices]
+        rewards = torch.Tensor(replay_memory.rewards)[shuffle_indices]
+        next_states = torch.stack(replay_memory.next_states)[shuffle_indices]
+        print(f"Average reward {torch.mean(rewards)}")
+
+
+        for i in range(epochs):
+            print(f"Training. Epoch {i}")
+            for j in range(0, len(states), batch_size):
+
+                self.update(
+                    states[j:j+batch_size], 
+                    actions[j:j+batch_size],
+                    rewards[j:j+batch_size],
+                    next_states[j:j+batch_size]
+                    )
+                
+        self.update_epsilon(num_steps)
+
     def get_action(self, state):
         state = utils.encode_state(state)
         if random.random() < self.epsilon:
@@ -69,6 +96,21 @@ class QLearningAgent:
             state = torch.tensor([[state]], device=device, dtype=torch.float32)
             action_prob = self.q_network(state)
             return torch.argmax(torch.nn.functional.softmax(action_prob)).unsqueeze(0)
+        
+    def get_reward(self, state, next_state):
+
+        prev_dist_to_goal = math.dist(state,constants.RELATIVE_GOAL_LOC)
+        cur_dist_to_goal = math.dist(next_state, constants.RELATIVE_GOAL_LOC)
+        start_dist_to_goal = math.dist(constants.RELATIVE_SPAWN_LOCATION, constants.RELATIVE_GOAL_LOC)
+        
+        if (next_state == constants.GOAL_LOC):
+            return start_dist_to_goal
+        elif (cur_dist_to_goal < prev_dist_to_goal and cur_dist_to_goal < start_dist_to_goal):
+            #return 1 - cur_dist_to_goal / start_dist_to_goal
+            #return 1
+            return start_dist_to_goal - cur_dist_to_goal
+        else:
+            return -1
 
         
 
@@ -103,18 +145,5 @@ class ReplayMemory:
         self.next_states.clear()
     
 
-import math
-def get_reward(state, next_state):
 
-    prev_dist_to_goal = math.dist(state,constants.RELATIVE_GOAL_LOC)
-    cur_dist_to_goal = math.dist(next_state, constants.RELATIVE_GOAL_LOC)
-    start_dist_to_goal = math.dist(constants.RELATIVE_SPAWN_LOCATION, constants.RELATIVE_GOAL_LOC)
-    
-    if (next_state == constants.GOAL_LOC):
-        return start_dist_to_goal
-    elif (cur_dist_to_goal < prev_dist_to_goal and cur_dist_to_goal < start_dist_to_goal):
-        #return 1 - cur_dist_to_goal / start_dist_to_goal
-        #return 1
-        return start_dist_to_goal - cur_dist_to_goal
-    else:
-        return -1
+

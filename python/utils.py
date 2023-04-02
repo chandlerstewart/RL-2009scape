@@ -1,5 +1,7 @@
 import torch
 import constants
+import json
+from enum import Enum
 
 '''
 def one_hot_state(xystate):
@@ -10,6 +12,25 @@ def one_hot_state(xystate):
         return state
 '''
 
+class Message:
+    def __init__(self, command, info = ""):
+        self.command = command
+        self.info = info
+
+    def to_json_out(self):
+        json_out = json.dumps(self.__dict__)
+        return json_out.encode()
+    
+
+class State(Enum):
+    WAIT_FOR_CONNECTION = 0
+    SPAWN_BOTS = 1
+    WAIT_FOR_DATA = 2
+    SEND_ACTION = 3
+    RESET_EPISDOE = 4
+
 def encode_state(state):
     ret = torch.tensor(state[0] * constants.X_SIZE + state[1])
     return ret
+
+
