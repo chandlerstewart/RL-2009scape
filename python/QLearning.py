@@ -11,10 +11,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class QNetwork(nn.Module):
     def __init__(self, state_size, action_size):
         super(QNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, action_size)
+        layer_size = 128
+        self.fc1 = nn.Linear(state_size, layer_size)
+        self.fc2 = nn.Linear(layer_size, layer_size)
+        self.fc3 = nn.Linear(layer_size, layer_size)
+        self.fc4 = nn.Linear(layer_size, action_size)
 
     def forward(self, state):
         x = torch.relu(self.fc1(state.float()))
@@ -26,7 +27,7 @@ class QNetwork(nn.Module):
 
 
 class QLearningAgent:
-    def __init__(self, state_size, action_size, lr=0.001, start_epsilon=1, min_epsilon=0.2, decay_rate=0.01, decay_type = "linear"):
+    def __init__(self, state_size, action_size, lr=0.0001, start_epsilon=1, min_epsilon=0.3, decay_rate=0.0025, decay_type = "linear"):
         self.q_network = QNetwork(state_size, action_size).to(device)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.start_epsilon = start_epsilon
@@ -34,6 +35,7 @@ class QLearningAgent:
         self.min_epsilon = min_epsilon
         self.decay_rate = decay_rate
         self.decay_type = decay_type
+        self.criterion = torch.nn.SmoothL1Loss()
 
     def update_epsilon(self, steps):
         if self.decay_type == 'linear':
@@ -45,8 +47,6 @@ class QLearningAgent:
         print(f"EPSILON: {self.epsilon}")
 
     def update(self, state, action, reward, next_state):
-        state = state.unsqueeze(dim=0).T
-        next_state = next_state.unsqueeze(dim=0).T
 
         q_values = self.q_network(state)
         next_q_values = self.q_network(next_state)
@@ -56,7 +56,8 @@ class QLearningAgent:
         
         target = reward + 0.99 * next_q_value
 
-        loss = (q_value - target.detach()).pow(2).mean()
+        loss = self.criterion(q_value.squeeze(),target.detach().squeeze())
+
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -71,6 +72,7 @@ class QLearningAgent:
         states = states[shuffle_indices]
         actions = torch.stack(replay_memory.actions)[shuffle_indices]
         rewards = torch.Tensor(replay_memory.rewards)[shuffle_indices]
+
         next_states = torch.stack(replay_memory.next_states)[shuffle_indices]
         print(f"Average reward {torch.mean(rewards)}")
 
@@ -89,19 +91,22 @@ class QLearningAgent:
         self.update_epsilon(num_steps)
 
     def get_action(self, state):
-        state = utils.encode_state(state)
+        pos = utils.encode_state(state[0])
+        state = [pos] + state[1:]
+        state = torch.tensor(state)
         if random.random() < self.epsilon:
-            return torch.tensor([random.randint(0,3)])
+            return torch.tensor([random.randint(0,constants.ACTION_SIZE-1)])
         else:
-            state = torch.tensor([[state]], device=device, dtype=torch.float32)
             action_prob = self.q_network(state)
             return torch.argmax(torch.nn.functional.softmax(action_prob)).unsqueeze(0)
         
     def get_reward(self, state, next_state):
+        state = state[0]
+        next_state = next_state[0]
 
-        prev_dist_to_goal = math.dist(state,constants.RELATIVE_GOAL_LOC)
-        cur_dist_to_goal = math.dist(next_state, constants.RELATIVE_GOAL_LOC)
-        start_dist_to_goal = math.dist(constants.RELATIVE_SPAWN_LOCATION, constants.RELATIVE_GOAL_LOC)
+        prev_dist_to_goal = math.dist(state,constants.GOAL_LOC)
+        cur_dist_to_goal = math.dist(next_state, constants.GOAL_LOC)
+        start_dist_to_goal = math.dist(constants.SPAWN_LOCATION, constants.GOAL_LOC)
         
         if (next_state == constants.GOAL_LOC):
             return start_dist_to_goal
@@ -117,10 +122,13 @@ class QLearningAgent:
 
 class MemoryStep:
     def __init__(self, state, action, reward, next_state):
-        self.state = state
+        pos = utils.encode_state(state[0])
+        next_pos = utils.encode_state(next_state[0])
+
+        self.state = torch.tensor([pos] + state[1:])
         self.action = action
         self.reward = reward
-        self.next_state = next_state
+        self.next_state = torch.tensor([next_pos] + next_state[1:])
 
 
 class ReplayMemory:
@@ -132,10 +140,10 @@ class ReplayMemory:
         self.next_states = []
 
     def append(self, memory_step):
-        self.states.append(utils.encode_state(memory_step.state))
+        self.states.append(memory_step.state)
         self.actions.append(memory_step.action)
         self.rewards.append(memory_step.reward)
-        self.next_states.append(utils.encode_state(memory_step.next_state))
+        self.next_states.append(memory_step.next_state)
 
     
     def clear(self):

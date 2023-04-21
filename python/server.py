@@ -49,14 +49,21 @@ class Server:
             data_size = struct.unpack('>H', length_bytes)[0]
 
 
-            print(f"Connected by {addr}")
+            #print(f"Connected by {addr}")
             data = client_socket.recv(data_size)
+            while(len(data) < data_size):
+                chunk = client_socket.recv(data_size - len(data))
+                if not chunk:
+                    break
+
+                data += chunk
 
             self.MESSAGE_IN = Message(**json.loads(data.decode('utf-8')))
             self.MESSAGE_IN_UPDATED = True
             self.manage_state(self.MESSAGE_IN)
 
-            print(self.MESSAGE_OUT.command)
+            #print(self.MESSAGE_OUT.command)
+            #print(self.MESSAGE_OUT.info)
             response = self.MESSAGE_OUT.to_json_out()
             
             
@@ -96,7 +103,7 @@ class Server:
             self.MESSAGE_OUT = Message("server_waiting")
         if self.STATE in [State.SPAWN_BOTS, State.RESET_EPISDOE]:
             self.STATE = State.SPAWN_BOTS
-            self.MESSAGE_OUT = Message(f"spawn_bots {constants.SPAWN_LOCATION[0]} {constants.SPAWN_LOCATION[1]} {constants.NUM_BOTS}")
+            self.MESSAGE_OUT = Message(f"spawn_bots {constants.SPAWN_LOCATION[0]} {constants.SPAWN_LOCATION[1]} {constants.NUM_BOTS}", "woodcutting")
 
 
         self.MESSAGE_IN_UPDATED = False

@@ -18,6 +18,7 @@ import core.game.node.entity.skill.Skills;
 import core.game.node.entity.state.EntityState;
 import core.game.node.entity.state.StateManager;
 import core.game.system.task.Pulse;
+import core.game.world.map.Direction;
 import core.game.world.map.zone.ZoneBorders;
 import org.jetbrains.annotations.NotNull;
 import rs09.game.system.SystemLogger;
@@ -368,6 +369,10 @@ public abstract class Entity extends Node {
 	 */
 	public boolean canMove(Location destination) {
 		return true;
+	}
+
+	public boolean canMove(Location destination, Direction direction){
+		return direction.canMove(destination);
 	}
 
 	/**

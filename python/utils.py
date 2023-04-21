@@ -30,7 +30,7 @@ class State(Enum):
     RESET_EPISDOE = 4
 
 def encode_state(state):
-    ret = torch.tensor(state[0] * constants.X_SIZE + state[1])
+    ret = state[0] * constants.X_SIZE + state[1]
     return ret
 
 

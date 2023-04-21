@@ -1,12 +1,10 @@
 package rs09.game.ai;
 
+import api.EquipmentSlot;
+import core.game.interaction.*;
 import core.game.node.entity.impl.PulseType;
 import rs09.ServerConstants;
 import core.game.container.impl.EquipmentContainer;
-import core.game.interaction.DestinationFlag;
-import core.game.interaction.MovementPulse;
-import core.game.interaction.Option;
-import core.game.interaction.OptionHandler;
 import core.game.node.Node;
 import core.game.node.entity.Entity;
 import core.game.node.entity.npc.NPC;
@@ -19,6 +17,8 @@ import core.game.world.map.Location;
 import core.game.world.map.RegionManager;
 import core.game.world.map.path.Pathfinder;
 import core.game.world.map.zone.impl.WildernessZone;
+import rs09.game.interaction.IntType;
+import rs09.game.interaction.InteractionListeners;
 import rs09.game.world.repository.Repository;
 import core.net.packet.context.MessageContext;
 import core.plugin.Plugin;
@@ -172,7 +172,7 @@ public class AIPlayer extends Player {
         return Integer.parseInt(OSRScopyLine.split(":")[index]);
     }
 
-    private void equipIfExists(Item e, int slot) {
+    public void equipIfExists(Item e, int slot) {
         if (e == null || e.getName().equalsIgnoreCase("null")) {
             return;
         }
@@ -577,6 +577,10 @@ public class AIPlayer extends Player {
 
 
     public void interact(Node n) {
-       // InteractionPacket.handleObjectInteraction(this, 0, n.getLocation(), n.getId());
+
+    }
+
+    public void chop(Node n){
+        InteractionListeners.run(n.getId(),IntType.SCENERY,"chop down",this,n);
     }
 }

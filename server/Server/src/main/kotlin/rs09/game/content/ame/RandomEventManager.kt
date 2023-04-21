@@ -24,6 +24,7 @@ class RandomEventManager(val player: Player? = null) : LoginListener, EventHook<
     val skills = arrayOf("WoodcuttingSkillPulse","FishingPulse","MiningSkillPulse","BoneBuryingOptionPlugin")
 
     override fun login(player: Player) {
+        return
         if(player.isArtificial) return
         val instance = RandomEventManager(player)
         player.hook(Event.Tick, instance)

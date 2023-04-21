@@ -48,6 +48,7 @@ class MajorUpdateWorker {
             }
 
             //Handle daily restart if enabled
+            /*
             if (sdf.format(Date()).toInt() == 0) {
 
                 if (GameWorld.checkDay() == 1) {//monday
@@ -70,12 +71,14 @@ class MajorUpdateWorker {
                         }
                     })
                 }
-            }
+            }*/
 
             val end = System.currentTimeMillis()
 /*            ServerMonitor.eventQueue.add(GuiEvent.UpdateTickTime(end - start))
             ServerMonitor.eventQueue.add(GuiEvent.UpdatePulseCount(GameWorld.Pulser.TASKS.size))*/
-            Thread.sleep(max(tick_speed - (end - start), 0))
+            if (tick_speed > 0){
+                Thread.sleep(max(tick_speed - (end - start), 0))
+            }
         }
 
         SystemLogger.logInfo(this::class.java, "Update worker stopped.")
