@@ -17,6 +17,7 @@ import java.util.HashMap;
 public class PyBotManager {
 
     public static ArrayList<AIPlayer> botList = new ArrayList<AIPlayer>();
+    public static Integer nodeRange = 0;
 
     public static String getJSONBotStatus(ArrayList rewards){
 
@@ -42,13 +43,16 @@ public class PyBotManager {
             botInfo.put("canMoveEast", canMoveEast);
             botInfo.put("canMoveWest", canMoveWest);
 
+            botInfo.put("freeInvSpace", bot.getInventory().freeSlots());
+
             if (rewards == null){
                 botInfo.put("reward",0);
             } else {
                 botInfo.put("reward", rewards.get(i));
             }
 
-            addNearbyNodesToBotInfo(bot, botInfo);
+            //addNearbyNodesToBotInfo(bot, botInfo);
+            botInfo.put("nearbyNodes",bot.getNodesInRange(nodeRange));
 
             botInfoList.add(botInfo.toJsonElement());
         }
@@ -84,14 +88,18 @@ public class PyBotManager {
     }
 
 
+
+
     public static ArrayList<Integer> takeActions(ArrayList<BotInfo> botInfoList) {
 
         ArrayList <Integer> rewardList = new ArrayList<>();
 
         for(int i=0; i<botInfoList.size(); i++){
+
             rewardList.add(0);
             AIPlayer bot = botList.get(i);
             HashMap botMap = botInfoList.get(i).map;
+
             int xLoc = ((Double) botMap.get("xLoc")).intValue();
             int yLoc = ((Double) botMap.get("yLoc")).intValue();
 
@@ -113,8 +121,24 @@ public class PyBotManager {
                 }
 
                 if (node != null){
-                    bot.chop(node);
-                    rewardList.add(i, 1);
+
+                    switch(node.getName()){
+                        case "Tree":
+                        case "Maple Tree":
+                        case "Oak Tree":
+                            if (bot.getInventory().freeSlots() > 0){
+                                bot.chop(node);
+                                //rewardList.add(i, 1);
+                                rewardList.add(i, bot.getInventory().capacity() - bot.getInventory().freeSlots());
+                            }
+                            break;
+                        case "Bank booth":
+                            rewardList.add(i, (bot.getInventory().capacity() - bot.getInventory().freeSlots()) * 1000);
+                            bot.getInventory().clear();
+
+                    }
+
+
                 }
             }
         }

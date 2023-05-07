@@ -1,6 +1,5 @@
 import socket
 import json
-import bot_controller
 import struct
 import constants
 from QLearning import *
@@ -8,7 +7,8 @@ import torch
 import threading
 import signal
 import traceback
-from utils import Message, State
+from utils import Message, State, Bot
+import utils
 
 
 
@@ -46,17 +46,22 @@ class Server:
         while self.SOCKET_OPEN:
             client_socket, addr = server_socket.accept()
             length_bytes = client_socket.recv(2)
-            data_size = struct.unpack('>H', length_bytes)[0]
 
+            if len(length_bytes) == 2:
+                data_size = struct.unpack('>H', length_bytes)[0]
 
-            #print(f"Connected by {addr}")
-            data = client_socket.recv(data_size)
-            while(len(data) < data_size):
-                chunk = client_socket.recv(data_size - len(data))
-                if not chunk:
-                    break
+                #print(f"Connected by {addr}")
+                data = client_socket.recv(data_size)
+                while(len(data) < data_size):
+                    chunk = client_socket.recv(data_size - len(data))
+                    if not chunk:
+                        break
 
-                data += chunk
+                    data += chunk
+
+            else:
+                print("FIX THIS!")
+
 
             self.MESSAGE_IN = Message(**json.loads(data.decode('utf-8')))
             self.MESSAGE_IN_UPDATED = True
@@ -103,7 +108,9 @@ class Server:
             self.MESSAGE_OUT = Message("server_waiting")
         if self.STATE in [State.SPAWN_BOTS, State.RESET_EPISDOE]:
             self.STATE = State.SPAWN_BOTS
-            self.MESSAGE_OUT = Message(f"spawn_bots {constants.SPAWN_LOCATION[0]} {constants.SPAWN_LOCATION[1]} {constants.NUM_BOTS}", "woodcutting")
+            botinfo = Bot({"task":"woodcutting", "nodesRange": constants.NODES_RANGE})
+            botinfo = json.dumps([botinfo.info])
+            self.MESSAGE_OUT = Message(f"spawn_bots {constants.SPAWN_LOCATION[0]} {constants.SPAWN_LOCATION[1]} {constants.NUM_BOTS}", botinfo )
 
 
         self.MESSAGE_IN_UPDATED = False

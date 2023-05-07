@@ -3,6 +3,7 @@ package rs09.game.ai;
 import api.EquipmentSlot;
 import core.game.interaction.*;
 import core.game.node.entity.impl.PulseType;
+import org.rs09.consts.Items;
 import rs09.ServerConstants;
 import core.game.container.impl.EquipmentContainer;
 import core.game.node.Node;
@@ -332,18 +333,90 @@ public class AIPlayer extends Player {
                 if (node != null)
                     if (node.getId() == entry)
                         nodes.add(node);
+                    else {
+                        nodes.add(null);
+                    }
                 Node node2 = RegionManager.getObject(0, meX + x, meY - y);
                 if (node2 != null)
                     if (node2.getId() == entry)
                         nodes.add(node2);
+                    else {
+                        nodes.add(null);
+                    }
                 Node node3 = RegionManager.getObject(0, meX - x, meY + y);
                 if (node3 != null)
                     if (node3.getId() == entry)
                         nodes.add(node3);
+                    else {
+                        nodes.add(null);
+                    }
                 Node node4 = RegionManager.getObject(0, meX - x, meY - y);
                 if (node4 != null)
                     if (node4.getId() == entry)
                         nodes.add(node4);
+                    else {
+                        nodes.add(null);
+                    }
+            }
+        }
+        return nodes;
+    }
+
+/*    public ArrayList<Object> getNodesInRange(int range) {
+        int meX = this.getLocation().getX();
+        int meY = this.getLocation().getY();
+        ArrayList<Object> nodes = new ArrayList<Object>();
+
+        for (int x = 0; x < range; x++) {
+            for (int y = 0; y < range; y++) {
+                Node node = RegionManager.getObject(0, meX + x, meY + y);
+                if (node != null)
+                    nodes.add(node.getName());
+                else {
+                    nodes.add("");
+                }
+                Node node2 = RegionManager.getObject(0, meX + x, meY - y);
+                if (node2 != null)
+                    nodes.add(node2.getName());
+                else {
+                    nodes.add("");
+                }
+                Node node3 = RegionManager.getObject(0, meX - x, meY + y);
+                if (node3 != null)
+                    nodes.add(node3.getName());
+                else {
+                    nodes.add("");
+                }
+                Node node4 = RegionManager.getObject(0, meX - x, meY - y);
+                if (node4 != null)
+                    nodes.add(node4.getName());
+                else {
+                    nodes.add("");
+                }
+            }
+        }
+        return nodes;
+    }*/
+
+    public ArrayList<Object> getNodesInRange(int range) {
+        int meX = this.getLocation().getX();
+        int meY = this.getLocation().getY();
+        int startX = meX - range;
+        int endX = meX + range;
+        int startY = meY - range;
+        int endY = meY + range;
+
+
+        ArrayList<Object> nodes = new ArrayList<Object>();
+
+        for (int x = startX; x <= endX; x++) {
+            for (int y = startY; y <= endY; y++) {
+                Node node = RegionManager.getObject(0, x, y);
+                if (node != null)
+                    nodes.add(node.getName());
+                else {
+                    nodes.add("");
+                }
             }
         }
         return nodes;
@@ -581,6 +654,7 @@ public class AIPlayer extends Player {
     }
 
     public void chop(Node n){
-        InteractionListeners.run(n.getId(),IntType.SCENERY,"chop down",this,n);
+        //InteractionListeners.run(n.getId(),IntType.SCENERY,"chop down",this,n);
+        this.getInventory().add(new Item(Items.OAK_LOGS_1521));
     }
 }

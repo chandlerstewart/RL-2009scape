@@ -24,6 +24,7 @@ public class PyCommands {
 
         String command = message.getCommand();
         String[] split = message.getCommand().split(" ");
+        ArrayList<BotInfo> botInfoList;
 
         System.out.println(command);
 
@@ -34,16 +35,15 @@ public class PyCommands {
                 int x = Integer.valueOf(split[1]);
                 int y = Integer.valueOf(split[2]);
                 int numOfBots = Integer.valueOf(split[3]);
-                GenerateBot(new Location(x, y), numOfBots, message.getInfo());
+                botInfoList = message.getInfo();
+                GenerateBot(new Location(x, y), numOfBots, botInfoList);
                 String jsonBotStatus = PyBotManager.getJSONBotStatus(null);
 
                 return new Message("Success: spawn_bots", String.valueOf(jsonBotStatus.length()*2));
             case "server_waiting":
                 return new Message("json", PyBotManager.getJSONBotStatus(null));
             case "json":
-                Type listType = new TypeToken<ArrayList<HashMap<String, Object>>>(){}.getType();
-                ArrayList<HashMap<String, Object>> listOfMaps = new Gson().fromJson(message.getInfo(), listType);
-                ArrayList<BotInfo> botInfoList = BotInfo.mapToBotInfo(listOfMaps);
+                botInfoList = message.getInfo();
                 ArrayList <Integer> rewards = PyBotManager.takeActions(botInfoList);
                 return new Message("json", PyBotManager.getJSONBotStatus(rewards));
 
@@ -54,7 +54,11 @@ public class PyCommands {
         }
     }
 
-    private static void GenerateBot(Location location, int numOfBots, String activity){
+    private static void GenerateBot(Location location, int numOfBots, ArrayList<BotInfo> botInfoList){
+
+        String task = (String) botInfoList.get(0).map.get("task");
+        Integer nodeRange = ((Double) botInfoList.get(0).map.get("nodesRange")).intValue();
+        PyBotManager.nodeRange = nodeRange;
 
         if (PyBotManager.botList.size() > 0){
             PyBotManager.removeBots();
@@ -66,7 +70,7 @@ public class PyCommands {
 
             PyBotManager.botList.add(aiPlayer);
 
-            if (activity.equals("woodcutting")){
+            if (task.equals("woodcutting")){
                 Item rune_axe = new Item(Items.RUNE_AXE_1359);
                 aiPlayer.equipIfExists(rune_axe, EquipmentContainer.SLOT_WEAPON);
                 aiPlayer.getSkills().setStaticLevel(Skills.WOODCUTTING, 99);
