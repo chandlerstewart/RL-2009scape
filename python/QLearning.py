@@ -65,6 +65,24 @@ class ReplayMemory(object):
         rewards = torch.Tensor([t.reward for t in self.sample_list()])
         return torch.max(rewards).item()
     
+    def episode_reward_max(self):
+        if len(self.memory) <= constants.NUM_BOTS:
+            return 0
+        
+        rewards = torch.Tensor([t.reward for t in self.sample_list()])
+        episode_rewards = rewards[rewards.shape[0] - constants.NUM_BOTS * constants.EPISODE_NUM_STEPS_MAX:]
+
+        return torch.max(episode_rewards).item()
+    
+    def episode_reward_mean(self):
+        if len(self.memory) <= constants.NUM_BOTS:
+            return 0
+        
+        rewards = torch.Tensor([t.reward for t in self.sample_list()])
+        episode_rewards = rewards[rewards.shape[0] - constants.NUM_BOTS * constants.EPISODE_NUM_STEPS_MAX:]
+
+        return torch.mean(episode_rewards).item()
+    
     def clear(self):
         self.memory.clear()
 

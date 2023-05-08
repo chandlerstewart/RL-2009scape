@@ -7,34 +7,6 @@ import HAC
 import traceback
 
 
-class HACTrainer:
-
-    def __init__(self, k_level, H, state_dim, action_dim, render, threshold, 
-                action_bounds, action_offset, state_bounds, state_offset, lr, lamda):
-
-        # primitive action bounds and offset
-        action_bounds = env.action_space.high[0]
-        action_offset = np.array([0.0])
-        action_offset = torch.FloatTensor(action_offset.reshape(1, -1)).to(device)
-        action_clip_low = np.array([-1.0 * action_bounds])
-        action_clip_high = np.array([action_bounds])
-        
-        # state bounds and offset
-        state_bounds_np = np.array([0.9, 0.07])
-        state_bounds = torch.FloatTensor(state_bounds_np.reshape(1, -1)).to(device)
-        state_offset =  np.array([-0.3, 0.0])
-        state_offset = torch.FloatTensor(state_offset.reshape(1, -1)).to(device)
-        state_clip_low = np.array([-1.2, -0.07])
-        state_clip_high = np.array([0.6, 0.07])
-        
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self.agent = HAC(k_level, H, state_dim, action_dim, render, threshold, 
-                action_bounds, action_offset, state_bounds, state_offset, lr)
-
-        self.agent.set_parameters(lamda, gamma, action_clip_low, action_clip_high, 
-                       state_clip_low, state_clip_high, exploration_action_noise, exploration_state_noise)
-
 
 
 class DoubleQTrainer:
@@ -46,7 +18,7 @@ class DoubleQTrainer:
         self.target_net = DQN(constants.STATE_SIZE, constants.ACTION_SIZE).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        self.batch_size = 1000
+        self.batch_size = 256
         self.gamma = 0.99
         self.eps_start = 1
         self.eps_end = 0.01
@@ -55,7 +27,10 @@ class DoubleQTrainer:
         self.lr = 1e-4
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayMemory(50000)
+        self.memory = ReplayMemory(20000)
+
+        self.logs_collected = [0] * constants.NUM_BOTS
+        self.mean_logs_collected = []
 
         self.steps_done = 0
 
@@ -138,6 +113,14 @@ class DoubleQTrainer:
                 last_reward = torch.as_tensor(bot.info["reward"]) + self.movement_reward(last_state, state)
                 self.memory.memory[last_memory_index] = Transition(last_state, last_action, state, last_reward)
 
+
+                freeInvSpace = bot.info["freeInvSpace"]
+                lastFreeInvSpace = self.memory.memory[last_memory_index].state[2]
+
+                if freeInvSpace < lastFreeInvSpace:
+                    self.logs_collected[i] += lastFreeInvSpace - freeInvSpace
+                
+
             self.memory.push(state, action, None, None)
         self.optimize_model()
         target_net_state_dict = self.target_net.state_dict()
@@ -167,16 +150,21 @@ class DoubleQTrainer:
             return 28 - inv
         else:
             return 0
+        
+    def clear_logs_collected(self):
+        self.mean_logs_collected.append(torch.Tensor(self.logs_collected).mean().item())
+        self.logs_collected = [0] * constants.NUM_BOTS
+        
 
     def clear_memory(self):
         self.memory.clear()
 
 
     def reward_mean(self):
-        return self.memory.reward_mean()
+        return self.memory.episode_reward_mean()
     
     def reward_max(self):
-        return self.memory.reward_max()
+        return self.memory.episode_reward_max()
 
 
 

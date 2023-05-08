@@ -26,45 +26,12 @@ plt.ion()
 
 
 
-
-# if GPU is to be used
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-
-# BATCH_SIZE is the number of transitions sampled from the replay buffer
-# GAMMA is the discount factor as mentioned in the previous section
-# EPS_START is the starting value of epsilon
-# EPS_END is the final value of epsilon
-# EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
-# TAU is the update rate of the target network
-# LR is the learning rate of the ``AdamW`` optimizer
-BATCH_SIZE = 128
-GAMMA = 0.99
-EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 1000
-TAU = 0.005
-LR = 1e-4
-
-# Get number of actions from gym action space
-n_actions = constants.ACTION_SIZE
-n_observations = constants.STATE_SIZE
-
-
-
-
-
-steps_done = 0
-
-
-
 Server = server.Server()
 Server.start()
 
 episode = 0
 steps_this_episode = 0
-steps_per_episode = constants.EPISODE_NUM_STEPS_MIN
+steps_per_episode = constants.EPISODE_NUM_STEPS_MAX
 
 
 trainer = DoubleQTrainer()
@@ -89,10 +56,15 @@ while episode < constants.NUM_EPISDOES:
                     steps_this_episode = 0
                     steps_per_episode = min(constants.EPISODE_NUM_STEPS_MAX, steps_per_episode + 5)
                     mean_rewards.append(trainer.reward_mean())
+                    trainer.clear_logs_collected()
+
+                    utils.plot_logs_collected(trainer.mean_logs_collected)
                     utils.plot_rewards(mean_rewards)
                     if trainer.reward_mean() > best_reward_mean:
                         best_reward_mean = trainer.reward_mean()
                         trainer.save_model()
+
+                    
 
                     
 
@@ -103,13 +75,18 @@ while episode < constants.NUM_EPISDOES:
                     print("Reward Mean: " + str(trainer.reward_mean()))
                     print("Epsilon: " + str(trainer.epsilon()))
                     print("Top Reward: " + str(trainer.reward_max()))
-                    trainer.clear_memory()
+                    print("Mean Logs Collected: " + str(trainer.mean_logs_collected[-1]))
+                    
+                    
 
 
     except Exception as e:
             traceback.print_exc()
             Server.close()
             exit(1)
+
+utils.plot_logs_collected(trainer.mean_logs_collected, show_result=True)
+utils.plot_rewards(mean_rewards, show_result=True)
 
 
 

@@ -48,7 +48,7 @@ def encode_state(state):
 
 def plot_rewards(rewards, show_result=False):
     
-    plt.figure(2)
+    plt.figure(1)
     rewards_t = torch.tensor(rewards, dtype=torch.float)
     if show_result:
         plt.title('Result')
@@ -59,12 +59,42 @@ def plot_rewards(rewards, show_result=False):
     plt.ylabel('Reward')
     plt.plot(rewards_t.numpy())
     # Take 100 episode averages and plot them too
-    if len(rewards_t) >= 100:
-        means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
+    if len(rewards_t) >= 20:
+        means = rewards_t.unfold(0, 20, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(19), means))
         plt.plot(means.numpy())
 
     plt.pause(0.5)  # pause a bit so that plots are updated
+
+    plt.savefig("./plots/rewards.png")
+
+    if not show_result:
+        display.display(plt.gcf())
+        display.clear_output(wait=True)
+    else:
+        display.display(plt.gcf())
+
+def plot_logs_collected(logs, show_result=False):
+    
+    plt.figure(2)
+    logs_t = torch.tensor(logs, dtype=torch.float)
+    if show_result:
+        plt.title('Result')
+    else:
+        plt.clf()
+        plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Mean Logs Collected')
+    plt.plot(logs_t.numpy())
+    # Take 100 episode averages and plot them too
+    if len(logs_t) >= 20:
+        means = logs_t.unfold(0, 20, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(19), means))
+        plt.plot(means.numpy())
+
+    plt.pause(0.5)  # pause a bit so that plots are updated
+
+    plt.savefig("./plots/logs_collected.png")
 
     if not show_result:
         display.display(plt.gcf())
